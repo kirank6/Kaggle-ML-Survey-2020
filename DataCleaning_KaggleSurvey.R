@@ -19,6 +19,7 @@ dat <- read.csv(file.path(fp, "kaggle_survey_2020_responses.csv"))
 dat<- dat[2:20037,]
 
 trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+
 dat <- as.data.frame(apply(X= dat, MARGIN=2,FUN='trim'))
 
 
