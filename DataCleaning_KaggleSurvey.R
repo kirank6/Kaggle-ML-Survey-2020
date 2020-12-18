@@ -262,15 +262,20 @@ dat1 <- dat1[, c(1:7,356:554)]
 
 #write.csv(dat1, file.path(fp, "cleanedsurveydata.csv"))
 
-dat1<- (dat1
-        %>% mutate(highest.edu = ifelse(highest.edu =="Doctoral degree", "Doctoral",
-                                        ifelse(highest.edu =="Masterâ???Ts degree", "Masters",
-                                               ifelse(highest.edu =="Bachelorâ???Ts degree", "Bachelors",
-                                                      ifelse(highest.edu =="Professional degree", "professional",
-                                                             ifelse(highest.edu =="Some college/university study without earning a bachelorâ???Ts degree", "some_college",
-                                                                           "NoAnswer")))))
+# library(textcat)
+# dat1<- dat1[textcat(dat1$highest.edu) =="english",]
+
+
+dat2<- (dat1
+        %>% mutate(highest.edu = substr(highest.edu, 1,4),
+                   highest.edu = ifelse(highest.edu =="Doct", "Doctoral",
+                                        ifelse(highest.edu =="Mast", "Masters",
+                                               ifelse(highest.edu =="Bach", "Bachelors",
+                                                      ifelse(highest.edu =="Prof","professional",
+                                                             ifelse(highest.edu =="Some", "some_college",
+                                                                    "NoAnswer")))))
         )
-                   
+        
 )
 
 
