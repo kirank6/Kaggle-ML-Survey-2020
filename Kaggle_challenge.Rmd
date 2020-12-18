@@ -13,6 +13,7 @@ knitr::opts_chunk$set(warning = FALSE)
 ```
 
 ## Part A
+# Changes for Kaggle challenge
 
 The SFO team have three (3) specific questions they want you to investigate.
 
@@ -20,6 +21,201 @@ The SFO team have three (3) specific questions they want you to investigate.
 
 ```{r, message=F, results='hide'}
 library(tidyverse)
+```
+
+```{r}
+df = read.csv("kaggle_survey_2020_responses.csv", header = T)
+
+df
+```
+
+```{r}
+
+setwd("C:/Users/as8126/Ankur/MSDS/msds_git/kaggle_challenge")
+
+#headers = read.csv("cleanedsurveydata.csv", skip = 1, header = F, nrows = 1, as.is = T)
+dfc = read.csv("cleanedsurveydata.csv",  header = T)
+#colnames(dfc)= headers
+
+dfc
+```
+
+
+
+```{r}
+dfc <- dfc %>% filter (X >1)
+
+dfc
+```
+
+```{r}
+# remove non English characters
+dfc$highest.edu <- gsub('[^\x20-\x7E]', '', dfc$highest.edu)
+
+dfc
+```
+
+
+```{r}
+library(RJSONIO)
+library(maps)
+library(mapdata)
+library(rworldmap)
+```
+```{r}
+country_data <- joinCountryData2Map(dfc, joinCode='NAME', nameJoinColumn = "country")
+
+country_data
+```
+
+```{r}
+unique(dfc$country)
+```
+
+```{r}
+df2 <- dfc %>%
+  group_by(country) %>%
+  summarise(counts = n())
+
+df2
+```
+
+```{r}
+country_data <- joinCountryData2Map(df2, joinCode='NAME', nameJoinColumn = "country")
+
+country_data
+```
+
+```{r}
+country2 <- country_data %>%
+  filter (is.na(country_data$counts))
+
+country2
+```
+
+
+```{r}
+df_cord <- coordinates(country_data)
+
+head(df_cord)
+```
+
+```{r}
+df2 <- as.data.frame(df_cord)
+
+df2
+```
+
+```{r}
+df3 <- cbind(country = rownames(df2), df2)
+rownames(df3) <- 1:nrow(df3)
+```
+
+
+```{r}
+df3
+```
+
+```{r}
+# Add lat/long to dataframe
+
+df4 <- dfc %>%
+  inner_join(df3)
+
+df4
+```
+
+```{r}
+library(ggmap)
+library(leaflet)
+library(sf)
+library(tidyverse)
+library(dplyr)
+```
+
+
+
+```{r}
+data.spatial <- df4 %>% #projecting the table as an sf and setting the coordinate system
+  st_as_sf(coords = c("V1","V2")) %>% 
+  st_set_crs(value = 4326) 
+```
+
+
+```{r}
+library(shiny)
+library(leaflet)
+```
+
+
+
+```{r}
+leaflet()  %>%
+  addTiles()  %>%
+  addMarkers(data = data.spatial, popup = ~country)
+```
+
+```{r}
+country2 <- country_data %>% 
+  dplyr::select(LON, LAT, country)
+
+country2
+```
+
+```{r}
+nrow <- nrow(dfc)
+counter <- 1
+dfc$lon[counter] <- 0
+dfc$lat[counter] <- 0
+while (counter <= nrow){
+  CityName <- gsub(' ','%20',dfc$CityLong[counter]) #remove space for URLs
+  CountryCode <- test$Country[counter]
+  url <- paste(
+    "http://nominatim.openstreetmap.org/search?city="
+    , CityName
+    , "&countrycodes="
+    , CountryCode
+    , "&limit=9&format=json"
+    , sep="")
+  x <- fromJSON(url)
+  if(is.vector(x)){
+    test$lon[counter] <- x[[1]]$lon
+    test$lat[counter] <- x[[1]]$lat    
+  }
+  counter <- counter + 1
+}
+```
+
+```{r}
+library(ggmap)
+```
+
+```{r}
+register_google(key = "AIzaSyAe2Brb2eyF0ZeyEncpk_36JQkC-o9Xyvg")
+geocode("Nepal")
+```
+
+
+```{r}
+summary(dfc)
+```
+
+
+
+```{r}
+head(dfc)
+```
+
+```{r}
+unique(df$Q5)
+```
+```{r}
+
+unique(df$Q6)
+```
+
+
+```{r}
 ```
 
 
