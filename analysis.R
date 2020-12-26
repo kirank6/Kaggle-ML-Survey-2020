@@ -125,28 +125,50 @@ prog_by_country<- (dat2
                              prog_3 = sum(prog_3),
                              prog_4 = sum(prog_4),
                              prog_5 = sum(prog_5))
-               %>% filter(country %in% c)
+               #%>% filter(country %in% c)
                %>%mutate(country = ifelse(country == "United Kingdom of Great Britain and Northern Ireland", "UK",
-                                          ifelse(country == "United States of America", "USA", country)))
+                                          ifelse(country == "United States of America", "USA",
+                                                 ifelse(country== "Iran, Islamic Republic of...", "Iran",country))))
                
 )
+
 
 #Plot 
 prog_by_country<- melt(prog_by_country, id = c("country"))
 prog_by_country$Num <- substr(prog_by_country$variable, 6,7)
+prog_by_country1<- prog_by_country%>% group_by(country)%>% summarise(sum=sum(value))%>%ungroup()
+prog_by_country<- prog_by_country%>% left_join(.,prog_by_country1)%>% mutate(value= value/sum)
 
 ggplot(prog_by_country, aes(fill=Num, y=value, x=country)) + 
   geom_bar(position="stack", stat="identity")+
-  labs(x="Top 10 Country of Survey Participants",y="Number of Survey Participants")+
+  labs(x="Country of Survey Participants",y="Number of Survey Participants")+
   ggtitle("Number of Programming Language Used By Country") +
   theme(#legend.title = element_blank(),
         #legend.position = c(0.95, 0.75),
-        legend.text = element_text(size = 10))
+        legend.text = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1))
 
 
-current_role <- dat2%>% group_by(current.role,highest.edu)%>% summarize(freq = n())
+#ML Experience with Number of Programming Language
+prog_by_LM_Exp<- (dat2
+                   %>% mutate(prog_all = (Q7_Part_1Python+Q7_Part_2R+Q7_Part_3SQL+Q7_Part_4C+
+                                            Q7_Part_4C+Q7_Part_5C..+Q7_Part_8Julia+Q7_Part_8Julia+
+                                            Q7_Part_9Swift+Q7_Part_10Bash+Q7_Part_11MATLAB+Q7_Part_12None+Q7_OTHEROther),
+                              prog_1 = ifelse(prog_all == 1, 1, 0),
+                              prog_2 = ifelse(prog_all == 2, 1, 0),
+                              prog_3 = ifelse(prog_all == 3, 1, 0),
+                              prog_4 = ifelse(prog_all == 4, 1, 0),
+                              prog_5 = ifelse(prog_all > 4, 1, 0))
+                   %>% group_by(Q15)
+                   %>% summarize(prog_1 = sum(prog_1),
+                                 prog_2 = sum(prog_2),
+                                 prog_3 = sum(prog_3),
+                                 prog_4 = sum(prog_4),
+                                 prog_5 = sum(prog_5))
+                  
+)
 
-summary(dat2)
+
 
 ####################################
 #Participants by country
@@ -361,10 +383,11 @@ age_by_country<- (dat2
                   %>% group_by(country, Age)
                   %>% summarize(participants = n())
                   %>%mutate(country = ifelse(country == "United Kingdom of Great Britain and Northern Ireland", "UK",
-                                             ifelse(country == "United States of America", "USA", country)))
+                                             ifelse(country == "United States of America", "USA",
+                                                    ifelse(country== "Iran, Islamic Republic of...", "Iran" ,country))))
                   %>% left_join(., country)
                   %>% mutate(percent = participants/freq)
-                  %>% filter(country %in% c)
+                  #%>% filter(country %in% c)
                   
             )
 
@@ -372,13 +395,69 @@ age_by_country<- (dat2
 ggplot(age_by_country, aes(fill=Age, y=percent, x=reorder(country, -participants))) + 
   geom_bar(position="stack", stat="identity")+
   labs(x="Top 10 countries",y="Age Group (Percent)")+
-  ggtitle("Age Group by Top 10 Country") +
+  ggtitle("Age Group by Country") +
   theme(#legend.title = element_blank(),
     #legend.position = c(0.95, 0.75),
-    legend.text = element_text(size = 10))
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 90, hjust = 1))
 
+#ML use Experience and model use
+
+ml_model<- (dat2
+            %>% group_by(Q15)
+            %>% summarise(lin_log = sum(Q17_Part_1Linear.or.Logistic.Regression),
+                          tree_models = sum(Q17_Part_2Decision.Trees.or.Random.Forests),
+                          boosting_models = sum(Q17_Part_3Gradient.Boosting.Machines..xgboost..lightgbm..etc.),
+                          baseyian_model = sum(Q17_Part_4Bayesian.Approaches),
+                          evolutionay_model = sum(Q17_Part_5Evolutionary.Approaches),
+                          neuralNet = sum(Q17_Part_6Dense.Neural.Networks..MLPs..etc.),
+                          ConvNet = sum(Q17_Part_7Convolutional.Neural.Networks),
+                          generative_model = sum(Q17_Part_8Generative.Adversarial.Networks),
+                          recurrent_model = sum(Q17_Part_9Recurrent.Neural.Networks),
+                          transformers = sum(Q17_Part_10Transformer.Networks..BERT..gpt.3..etc.)
+                          #others = sum(Q17_OTHEROther),
+                          #none = sum(Q17_Part_11None)
+                          )
+            # %>% mutate(Q15 = ifelse(Q15 == "", "No Answer",
+            #                         ifelse(Q15 =="I do not use machine learning methods", "No ML Experience", Q15)))
+            %>% ungroup()
+            %>% filter(Q15 != "" & Q15 != "I do not use machine learning methods"))
+
+
+ml_model<- melt(ml_model, id = "Q15")
+names(ml_model)<- c("ML_Exp", "Models_used", "value")
+
+ggplot(ml_model, aes(fill=Models_used, y=value, x=reorder(ML_Exp, -value))) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x="Machine Learning Experience",y="Models Used")+
+  ggtitle("Models Used by ML Experience") +
+  theme(#legend.title = element_blank(),
+    #legend.position = c(0.95, 0.75),
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 30, hjust = 1))
 
 
 ## R vs Python
 
+r_python<- (dat2
+            %>% group_by(Q15)
+            %>% summarise(R = sum(Q7_Part_2R),
+                          python = sum(Q7_Part_1Python)
+            )
+            %>% ungroup()
+            %>% filter(Q15 != "" & Q15 != "I do not use machine learning methods")
+            %>% mutate(R_percent = R/sum(R),
+                       python_percent = python/sum(python),
+                       ML_Exp = Q15)
+            %>% select(ML_Exp, R, python))
+r_python<- melt(r_python, id = "ML_Exp")
+
+ggplot(r_python, aes(fill=variable, y=value, x=reorder(ML_Exp, -value))) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x="Machine Learning Experience",y="R/Python")+
+  ggtitle("R/Python Use by ML Experience") +
+  theme(#legend.title = element_blank(),
+    #legend.position = c(0.95, 0.75),
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 30, hjust = 1))
 
