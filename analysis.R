@@ -101,7 +101,7 @@ prog_by_edu<- (dat2
 prog_by_edu<- melt(prog_by_edu, id = c("highest.edu"))
 prog_by_edu$Num <- substr(prog_by_edu$variable, 6,7)
 
-ggplot(prog_by_edu, aes(fill=num, y=value, x=highest.edu)) + 
+ggplot(prog_by_edu, aes(fill=Num, y=value, x=highest.edu)) + 
   geom_bar(position="stack", stat="identity")+
   labs(x="Highest Education of Survey Participants",y="Number of Survey Participants")+
   ggtitle("Number of Programming Language Used By Education Level") +
@@ -109,7 +109,7 @@ ggplot(prog_by_edu, aes(fill=num, y=value, x=highest.edu)) +
         legend.position = c(0.95, 0.6),
         legend.text = element_text(size = 10))
 
-#Number of Programming Language Used in top 10 countries
+#Number of Programming Language Used by countries
 prog_by_country<- (dat2
                %>% mutate(prog_all = (Q7_Part_1Python+Q7_Part_2R+Q7_Part_3SQL+Q7_Part_4C+
                                         Q7_Part_4C+Q7_Part_5C..+Q7_Part_8Julia+Q7_Part_8Julia+
@@ -164,7 +164,8 @@ prog_by_LM_Exp<- (dat2
                                  prog_2 = sum(prog_2),
                                  prog_3 = sum(prog_3),
                                  prog_4 = sum(prog_4),
-                                 prog_5 = sum(prog_5))
+                                 prog_5 = sum(prog_5),
+                                 .groups = 'drop')
                   
 )
 
@@ -300,12 +301,12 @@ ggplot(gender_by_country, aes(fill=Gender, y=percent, x=reorder(country, -percen
 #Gender by Education level
 gender_by_edu<- (dat2
                  %>% group_by(highest.edu, gender)
-                 %>% summarize(participants = n())
+                 %>% summarize(participants = n(),.groups = 'drop')
                  %>% filter(gender %in% c("Man", "Woman")))
 
 gender_by_role<- (dat2
                  %>% group_by(gender, current.role)
-                 %>% summarize(participants = n())
+                 %>% summarize(participants = n(),.groups = 'drop')
                  %>% filter(gender %in% c("Man", "Woman")))
 
 #Stacked bar with two panel
@@ -332,7 +333,7 @@ ggarrange(p1, p2,ncol = 1, nrow = 2)
 #Gender by ML experience
 ml_exp<- (dat2
           %>% group_by(Q15, gender)
-          %>% summarize(participants = n())
+          %>% summarize(participants = n(),.groups = 'drop')
           %>% filter(gender %in% c("Man", "Woman"))
           %>% mutate(Q15 = ifelse(Q15 == "", "No Answer",
                                   ifelse(Q15 =="I do not use machine learning methods", "No ML Experience", Q15)))
@@ -381,7 +382,7 @@ ggarrange(mn, wn,ncol = 2, nrow = 1)
 #########################################
 age_by_country<- (dat2
                   %>% group_by(country, Age)
-                  %>% summarize(participants = n())
+                  %>% summarize(participants = n(),.groups = 'drop')
                   %>%mutate(country = ifelse(country == "United Kingdom of Great Britain and Northern Ireland", "UK",
                                              ifelse(country == "United States of America", "USA",
                                                     ifelse(country== "Iran, Islamic Republic of...", "Iran" ,country))))
@@ -442,7 +443,7 @@ ggplot(ml_model, aes(fill=Models_used, y=value, x=reorder(ML_Exp, -value))) +
 r_python<- (dat2
             %>% group_by(Q15)
             %>% summarise(R = sum(Q7_Part_2R),
-                          python = sum(Q7_Part_1Python)
+                          python = sum(Q7_Part_1Python), .groups = 'drop'
             )
             %>% ungroup()
             %>% filter(Q15 != "" & Q15 != "I do not use machine learning methods")
@@ -460,4 +461,113 @@ ggplot(r_python, aes(fill=variable, y=value, x=reorder(ML_Exp, -value))) +
     #legend.position = c(0.95, 0.75),
     legend.text = element_text(size = 10),
     axis.text.x = element_text(angle = 30, hjust = 1))
+
+
+###########################################
+#Combining Kiran Jee's charts
+###########################################
+
+#Current role and Machine Learning Experience
+wn_ml_exp <- (dat2
+              %>% filter(gender == "Woman")
+              %>% group_by(Q15, current.role)
+              %>% summarize(participants = n(),.groups = 'drop')
+              %>% mutate(Q15 = ifelse(Q15 == "", "No Answer",
+                                      ifelse(Q15 =="I do not use machine learning methods", "No ML Experience", as.character(Q15))),
+                         current.role = ifelse(current.role == "", "NoAnswer", as.character(current.role)))
+              %>% ungroup()
+              %>% rename(ML_Exp= Q15))
+
+
+#Plot
+ggplot(wn_ml_exp, aes(fill=ML_Exp, y=participants, x=reorder(current.role, -participants))) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x="Current Role",y="Numer of Women Participants")+
+  ggtitle("ML Experience by Current Role") +
+  theme(#legend.title = element_blank(),
+    #legend.position = c(0.95, 0.75),
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 30, hjust = 1))
+
+
+
+#Coding Experience by age group
+wn_coding_age<- (dat2
+                 %>% filter(gender == "Woman")
+                  %>% mutate(prog_all = (Q7_Part_1Python+Q7_Part_2R+Q7_Part_3SQL+Q7_Part_4C+
+                                           Q7_Part_4C+Q7_Part_5C..+Q7_Part_8Julia+Q7_Part_8Julia+
+                                           Q7_Part_9Swift+Q7_Part_10Bash+Q7_Part_11MATLAB+Q7_Part_12None+Q7_OTHEROther),
+                             prog_1 = ifelse(prog_all == 1, 1, 0),
+                             prog_2 = ifelse(prog_all == 2, 1, 0),
+                             prog_3 = ifelse(prog_all == 3, 1, 0),
+                             prog_4 = ifelse(prog_all == 4, 1, 0),
+                             prog_5 = ifelse(prog_all > 4, 1, 0))
+                  %>% group_by(Age)
+                  %>% summarize(prog_1 = sum(prog_1),
+                                prog_2 = sum(prog_2),
+                                prog_3 = sum(prog_3),
+                                prog_4 = sum(prog_4),
+                                prog_5 = sum(prog_5),
+                                .groups = 'drop')
+                 #%>% filter(Q15 != "")
+)
+
+
+#Plot 
+wn_coding_age<- melt(wn_coding_age, id = c("Age"))
+wn_coding_age %>% ggplot(aes(x= Age, y=value)) + 
+  geom_area(aes(colour = variable, group=variable, fill = variable))+
+  labs(x="Age of Women Participants",y="Num of Programming")+
+  ggtitle("Number of Programming Experience by Age") +
+  theme(#legend.title = element_blank(),
+    #legend.position = c(0.95, 0.75),
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 30, hjust = 1))
+  
+#Education by country
+
+wn_edu_country<- (dat2
+               %>% filter(gender == "Woman")
+               %>% group_by(country, highest.edu)
+               %>% summarize(women_num = n(), .groups = 'drop')
+               %>% ungroup()
+               
+)
+
+wn_country <- wn_edu_country%>% group_by(country)%>% summarize(total_w = sum(women_num),.groups = 'drop')
+wn_edu_country<- (wn_edu_country
+                  %>% left_join(., wn_country)
+                  %>% mutate(percent_w = women_num/total_w,
+                             country = ifelse(country == "United Kingdom of Great Britain and Northern Ireland", "UK",
+                                              ifelse(country == "United States of America", "USA",
+                                                     ifelse(country== "Iran, Islamic Republic of...", "Iran" ,country))))
+                  )
+
+
+
+#Stacked BarPlot 
+ggplot(wn_edu_country, aes(fill=highest.edu, y=percent_w, x=country)) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x="Country",y="Percent of Women")+
+  ggtitle("Women Education Level by Country") +
+  theme(legend.text = element_text(size = 10),
+        axis.text.x = element_text(angle = 60, hjust = 1))
+
+#Want to learn in 2 years by country
+
+
+
+
+
+
+
+
+################################
+##US survey participants 
+##################################
+
+
+
+
+#
 
