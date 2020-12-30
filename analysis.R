@@ -17,7 +17,7 @@ dat<- dat[2:20037,]
 
 trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 dat <- as.data.frame(apply(X= dat, MARGIN=2,FUN='trim'))
-dat1<- select(dat, Q1, Q2, Q3, Q4, Q5, Q6, Q8, Q11, Q13, Q15, Q20, Q21, Q22, Q30)
+dat1<- select(dat, Q1, Q2, Q3, Q4, Q5, Q6, Q8, Q11, Q13, Q15, Q20, Q21, Q22, Q24, Q25, Q30)
 
 dat1<- (dat1
         %>% rename(Age = Q1, gender = Q2, country = Q3, highest.edu = Q4, current.role = Q5, exp.year = Q6)
@@ -33,7 +33,7 @@ dat1<- (dat1
 )
 
 dat2<- select(dat, -Time.from.Start.to.Finish..seconds.,-Q1, -Q2, -Q3, -Q4, -Q5,
-              -Q6, -Q8, -Q11, -Q13, -Q15, -Q20, -Q21, -Q22, -Q30)
+              -Q6, -Q8, -Q11, -Q13, -Q15, -Q20, -Q21, -Q22, -Q24, -Q25, -Q30)
 
 #Convert to 0 or 1 for binary variables
 dummies_model <- dummyVars("~.", data = dat2, fullRank = T)
@@ -513,11 +513,11 @@ wn_coding_age<- (dat2
 )
 
 
-#Plot 
+#Area Plot 
 wn_coding_age<- melt(wn_coding_age, id = c("Age"))
 wn_coding_age %>% ggplot(aes(x= Age, y=value)) + 
   geom_area(aes(colour = variable, group=variable, fill = variable))+
-  labs(x="Age of Women Participants",y="Num of Programming")+
+  labs(x="Age of Women Participants",y="Num of Women Participants")+
   ggtitle("Number of Programming Experience by Age") +
   theme(#legend.title = element_blank(),
     #legend.position = c(0.95, 0.75),
@@ -553,12 +553,6 @@ ggplot(wn_edu_country, aes(fill=highest.edu, y=percent_w, x=country)) +
   theme(legend.text = element_text(size = 10),
         axis.text.x = element_text(angle = 60, hjust = 1))
 
-#Want to learn in 2 years by country
-
-
-
-
-
 
 
 
@@ -566,8 +560,99 @@ ggplot(wn_edu_country, aes(fill=highest.edu, y=percent_w, x=country)) +
 ##US survey participants 
 ##################################
 
+#Coding Skill of US Participants
+US_coding_ml_exp<- (dat2
+                    %>% filter(country == "United States of America")
+                    %>% mutate(prog_all = (Q7_Part_1Python+Q7_Part_2R+Q7_Part_3SQL+Q7_Part_4C+
+                                           Q7_Part_4C+Q7_Part_5C..+Q7_Part_8Julia+Q7_Part_8Julia+
+                                           Q7_Part_9Swift+Q7_Part_10Bash+Q7_Part_11MATLAB+Q7_Part_12None+Q7_OTHEROther),
+                              prog_1 = ifelse(prog_all == 1, 1, 0),
+                              prog_2 = ifelse(prog_all == 2, 1, 0),
+                              prog_3 = ifelse(prog_all == 3, 1, 0),
+                              prog_4 = ifelse(prog_all == 4, 1, 0),
+                              prog_5 = ifelse(prog_all > 4, 1, 0))
+                    %>% filter(Q15 !="I do not use machine learning methods" & Q15 != "")
+                    %>% mutate(ml_exp = ifelse(Q15 == "Under 1 year", "1-",
+                                               ifelse(Q15 == "1-2 years", "1-2", 
+                                                      ifelse(Q15 == "2-3 years", "2-3",
+                                                             ifelse(Q15 == "3-4 years", "3-4",
+                                                                    ifelse(Q15 == "4-5 years", "4-5", "5+"))))))
+                    %>% group_by(ml_exp)
+                    %>% summarize(prog_1 = sum(prog_1),
+                                  prog_2 = sum(prog_2),
+                                  prog_3 = sum(prog_3),
+                                  prog_4 = sum(prog_4),
+                                  prog_5 = sum(prog_5),
+                                  .groups = 'drop')
+                    #%>% filter(Q15 != "")
+                    #%>% mutate(Q15 = ifelse(Q15 == "I do not use machine learning methods", "No ML Exp", as.character(Q15)) )
+                  
+)
+
+#Area Plot 
+US_coding_ml_exp<- melt(US_coding_ml_exp, id = c("ml_exp"))
+US_coding_ml_exp$Num_prog<- US_coding_ml_exp$variable
+
+US_coding_ml_exp %>% ggplot(aes(x= ml_exp, y=value)) + 
+  geom_area(aes(colour = Num_prog, group=Num_prog, fill = Num_prog))+
+  labs(x="Machine Learning Experience (Years)",y="Num of Participants")+
+  ggtitle("Programming Language Skill by ML Experience") +
+    theme(legend.text = element_text(size = 8))
+
+
+#US Kaggle survey participanst by Age and current role
+us_age_role <- (dat2
+          %>% filter(country == "United States of America")
+          %>% group_by(Age, current.role)
+          %>% summarize(num = n(), .groups = 'drop')
+          %>% filter(current.role != "" & current.role != "Other")
+          
+)
+
+#Bar chart
+ggplot(us_age_role, aes(fill=current.role, y=num, x=Age)) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x="Age of Survey Participants",y="Count of Participants")+
+  ggtitle("US Survey Paricipants by Age and Current Role") +
+  theme(legend.text = element_text(size = 8))
+        
+
+#Who are data scientist in the US
+us_ds <- (dat2
+          %>% filter(country == "United States of America" & current.role == "Data Scientist")
+          %>% group_by(Age, highest.edu)
+          %>% summarize(num = n(), .groups = 'drop')
+          
+          )
+
+#Area chart
+us_ds %>% ggplot(aes(x= Age, y=num)) + 
+  geom_area(aes(colour = highest.edu, group=highest.edu, fill = highest.edu))+
+  labs(x="Age of US Survey Participants",y="Num of Partcipants")+
+  ggtitle("Data Scientists in US by Age and Education") +
+  theme(#legend.title = element_blank(),
+    #legend.position = c(0.95, 0.75),
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 30, hjust = 1))
+
+# Education and current role
+us_edu <- (dat2
+          %>% filter(country == "United States of America")
+          %>% group_by(current.role, highest.edu)
+          %>% summarize(num = n(), .groups = 'drop')
+          %>% ungroup()
+          %>% filter(current.role != "" & current.role != "Other")
+         )
+
+#Bar chart
+ggplot(us_edu, aes(fill=highest.edu, y=num, x=reorder(current.role, -num))) + 
+  geom_bar(position="stack", stat="identity")+
+  labs(x="Current Role",y="Count of Participants")+
+  ggtitle("Highest Education by Current Role in the US") +
+  theme(legend.text = element_text(size = 8),
+        axis.text.x = element_text(angle = 30, hjust = 1))
 
 
 
-#
+
 
