@@ -293,40 +293,41 @@ ggplot(gender_by_country, aes(fill=Gender, y=percent, x=reorder(country, -percen
   geom_bar(position="dodge", stat="identity")+
   labs(x="Top 10 Country of Survey Participants",y="Percent of Survey Participants")+
   ggtitle("Participants By Gender in Top 10 Country") +
-  theme(#legend.title = element_blank(),
-    #legend.position = c(0.95, 0.75),
-    legend.text = element_text(size = 10))
+  theme(legend.text = element_text(size = 10))
 
 
 #Gender by Education level
+#Normalized plot
 gender_by_edu<- (dat2
                  %>% group_by(highest.edu, gender)
                  %>% summarize(participants = n(),.groups = 'drop')
                  %>% filter(gender %in% c("Man", "Woman")))
+edu<- gender_by_edu%>% group_by(highest.edu)%>% summarise(total = sum(participants),.groups = 'drop')
+gender_by_edu<- gender_by_edu%>% left_join(., edu)%>% mutate(percent = participants/total)
 
 gender_by_role<- (dat2
                  %>% group_by(gender, current.role)
                  %>% summarize(participants = n(),.groups = 'drop')
                  %>% filter(gender %in% c("Man", "Woman")))
+role<- gender_by_role%>% group_by(current.role)%>% summarise(total = sum(participants),.groups = 'drop')
+gender_by_role<- gender_by_role%>% left_join(., role)%>% mutate(percent = participants/total)
+
+
 
 #Stacked bar with two panel
-p1<- ggplot(gender_by_edu, aes(fill=gender, y=participants, x=reorder(highest.edu, -participants))) + 
+p1<- ggplot(gender_by_edu, aes(fill=gender, y=percent, x=reorder(highest.edu, -participants))) + 
      geom_bar(position="stack", stat="identity")+
-     labs(x="Number of Participants",y="Highest Education Level")+
+     labs(x="Percent of Participants",y="Highest Education Level")+
      ggtitle("Education Level by Gender") +
-     theme(#legend.title = element_blank(),
-    #legend.position = c(0.95, 0.75),
-    legend.text = element_text(size = 10))
+     theme(legend.text = element_text(size = 10))
 
-p2<-  ggplot(gender_by_role, aes(fill=gender, y=participants, x=reorder(current.role, -participants))) + 
+p2<-  ggplot(gender_by_role, aes(fill=gender, y=percent, x=reorder(current.role, -participants))) + 
       geom_bar(position="stack", stat="identity")+
-      labs(x="Number of Participants",y="Current Role")+
+      labs(x="Percent of Participants",y="Current Role")+
       ggtitle("Current Role by Gender") +
-      theme(#legend.title = element_blank(),
-      #legend.position = c(0.95, 0.75),
-      legend.text = element_text(size = 10),
+      theme(legend.text = element_text(size = 10),
       axis.text.x = element_text(angle = 30, hjust = 1))
-#library(ggpubr)
+
 ggarrange(p1, p2,ncol = 1, nrow = 2)
 
 
@@ -576,28 +577,42 @@ US_coding_ml_exp<- (dat2
                                                ifelse(Q15 == "1-2 years", "1-2", 
                                                       ifelse(Q15 == "2-3 years", "2-3",
                                                              ifelse(Q15 == "3-4 years", "3-4",
-                                                                    ifelse(Q15 == "4-5 years", "4-5", "5+"))))))
-                    %>% group_by(ml_exp)
+                                                                    ifelse(Q15 == "4-5 years", "4-5", 
+                                                                           ifelse(Q15 == "5-10 years","5-10",
+                                                                                  ifelse(Q15 == "10-20 years", "10-20", "20+"))))))))
+                    %>% group_by(ml_exp, gender)
                     %>% summarize(prog_1 = sum(prog_1),
                                   prog_2 = sum(prog_2),
                                   prog_3 = sum(prog_3),
                                   prog_4 = sum(prog_4),
                                   prog_5 = sum(prog_5),
                                   .groups = 'drop')
-                    #%>% filter(Q15 != "")
+                    %>% filter(gender %in% c("Man", "Woman"))
                     #%>% mutate(Q15 = ifelse(Q15 == "I do not use machine learning methods", "No ML Exp", as.character(Q15)) )
                   
 )
 
 #Area Plot 
-US_coding_ml_exp<- melt(US_coding_ml_exp, id = c("ml_exp"))
+US_coding_ml_exp<- melt(US_coding_ml_exp, id = c("ml_exp", "gender"))
 US_coding_ml_exp$Num_prog<- US_coding_ml_exp$variable
 
-US_coding_ml_exp %>% ggplot(aes(x= ml_exp, y=value)) + 
+US_coding_ml_exp %>%
+  mutate(ml_exp = fct_relevel(name, 
+                            "1-", "1-2", "2-3", 
+                            "3-4", "4-5", "5-10", 
+                            "10-20", "20+")) %>%
+  ggplot( aes(x=name, y=val)) +
+  geom_bar(stat="identity") +
+  xlab("")
+
+US_coding_ml_exp %>%
+  mutate(ml_exp = factor(ml_exp, level=c("1-", "1-2", "2-3", 
+                              "3-4", "4-5", "5-10", "10-20", "20+")))%>% 
+  ggplot(aes(x= ml_exp, y=value)) + 
   geom_area(aes(colour = Num_prog, group=Num_prog, fill = Num_prog))+
   labs(x="Machine Learning Experience (Years)",y="Num of Participants")+
   ggtitle("Programming Language Skill by ML Experience") +
-    theme(legend.text = element_text(size = 8))
+    theme(legend.text = element_text(size = 8))+facet_wrap("gender")
 
 
 #US Kaggle survey participanst by Age and current role
@@ -638,10 +653,10 @@ us_ds %>% ggplot(aes(x= Age, y=num)) +
 # Education and current role
 us_edu <- (dat2
           %>% filter(country == "United States of America")
-          %>% group_by(current.role, highest.edu)
+          %>% group_by(current.role, highest.edu, gender)
           %>% summarize(num = n(), .groups = 'drop')
           %>% ungroup()
-          %>% filter(current.role != "" & current.role != "Other")
+          %>% filter(current.role != "" & current.role != "Other" & gender %in% c("Man", "Woman"))
          )
 
 #Bar chart
@@ -650,7 +665,8 @@ ggplot(us_edu, aes(fill=highest.edu, y=num, x=reorder(current.role, -num))) +
   labs(x="Current Role",y="Count of Participants")+
   ggtitle("Highest Education by Current Role in the US") +
   theme(legend.text = element_text(size = 8),
-        axis.text.x = element_text(angle = 30, hjust = 1))
+        axis.text.x = element_text(angle = 30, hjust = 1))+
+  facet_wrap(~gender)
 
 
 
