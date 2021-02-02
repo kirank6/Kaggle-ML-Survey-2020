@@ -2,12 +2,15 @@
 
 ## Objective 
 <img src = "Objective.PNG">
-![](Objective.PNG)
+
 ## Graph of age group by country
-![](Age_group_by_country.PNG)
+<img src = "Age_group_by_country.PNG">
+
 ## Graph of popular Programming Languages
-![](Programming Languages.PNG)
+<img src = "Programming Languages.PNG">
+
 ## Corelation of programming languages with education Level
-![](Programming with education.PNG)
+<img src = "Programming with education.PNG">
+
 ## Women around world in Kaggle with Education Level
-![](Women_education_Level.PNG)
+<img src = "Women_education_Level.PNG">
