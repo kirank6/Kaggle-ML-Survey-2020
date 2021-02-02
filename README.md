@@ -9,7 +9,7 @@
 ## Graph of popular Programming Languages
 <img src = "Programming Languages.PNG">
 
-## Corelation of programming languages with education Level
+## Correlation of programming languages with education Level
 <img src = "Programming with education.PNG">
 
 ## Women around world in Kaggle with Education Level
